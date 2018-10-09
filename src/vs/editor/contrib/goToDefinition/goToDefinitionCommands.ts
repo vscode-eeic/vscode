@@ -205,6 +205,31 @@ export class GoToDefinitionAction extends DefinitionAction {
 	}
 }
 
+export class GoToFunctionTopAction extends DefinitionAction {
+
+	public static readonly ID = 'editor.action.goToFunctionTop';
+
+	constructor() {
+		super(new DefinitionActionConfig(), {
+			id: GoToFunctionTopAction.ID,
+			label: nls.localize('actions.goToFuncTop.label', "Go to top of Function"),
+			alias: 'Go to top of Function',
+			precondition: ContextKeyExpr.and(
+				EditorContextKeys.hasDefinitionProvider,
+				EditorContextKeys.isInEmbeddedEditor.toNegated()),
+			kbOpts: {
+				kbExpr: EditorContextKeys.editorTextFocus,
+				primary: goToDeclarationKb,
+				weight: KeybindingWeight.EditorContrib
+			},
+			menuOpts: {
+				group: 'navigation',
+				order: 1.3
+			}
+		});
+	}
+}
+
 export class OpenDefinitionToSideAction extends DefinitionAction {
 
 	public static readonly ID = 'editor.action.openDeclarationToTheSide';
@@ -371,6 +396,7 @@ export class PeekTypeDefinitionAction extends TypeDefinitionAction {
 }
 
 registerEditorAction(GoToDefinitionAction);
+registerEditorAction(GoToFunctionTopAction);
 registerEditorAction(OpenDefinitionToSideAction);
 registerEditorAction(PeekDefinitionAction);
 registerEditorAction(GoToImplementationAction);
@@ -404,4 +430,12 @@ MenuRegistry.appendMenuItem(MenuId.MenubarGoMenu, {
 		title: nls.localize({ key: 'miGotoImplementation', comment: ['&& denotes a mnemonic'] }, "Go to &&Implementation")
 	},
 	order: 6
+});
+
+MenuRegistry.appendMenuItem(MenuId.MenubarGoMenu, {
+	group: 'z_go_to',
+	command: {
+		id: 'editor.action.goToFunctionTop',
+		title: nls.localize({ key: 'miGotoFunctionTop', comment: ['&& denotes a mnemonic'] }, "Go to &&Top of function")
+	}
 });
