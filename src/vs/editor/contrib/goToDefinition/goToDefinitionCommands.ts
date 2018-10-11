@@ -212,8 +212,8 @@ export class GoToFunctionTopAction extends DefinitionAction {
 	constructor() {
 		super(new DefinitionActionConfig(), {
 			id: GoToFunctionTopAction.ID,
-			label: nls.localize('actions.goToFuncTop.label', "Go to top of Function"),
-			alias: 'Go to top of Function',
+			label: nls.localize('actions.goToFuncTop.label', "Go to Top of Function"),
+			alias: 'Go to Top of Function',
 			precondition: ContextKeyExpr.and(
 				EditorContextKeys.hasDefinitionProvider,
 				EditorContextKeys.isInEmbeddedEditor.toNegated()),
@@ -436,6 +436,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarGoMenu, {
 	group: 'z_go_to',
 	command: {
 		id: 'editor.action.goToFunctionTop',
-		title: nls.localize({ key: 'miGotoFunctionTop', comment: ['&& denotes a mnemonic'] }, "Go to &&Top of function")
+		title: nls.localize({ key: 'miGotoFunctionTop', comment: ['&& denotes a mnemonic'] }, "Go to Top of &&Function")
 	}
 });
