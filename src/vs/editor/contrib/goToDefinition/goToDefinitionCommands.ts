@@ -27,7 +27,14 @@ import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 import { IProgressService } from 'vs/platform/progress/common/progress';
-import { getDefinitionsAtPosition, getImplementationsAtPosition, getTypeDefinitionsAtPosition } from './goToDefinition';
+import { getDefinitionsAtPosition, getImplementationsAtPosition, getTypeDefinitionsAtPosition,
+getCurrentFunctionAtPosition } from './goToDefinition';
+import { ITree } from 'vs/base/parts/tree/browser/tree';
+import { OutlineElement } from 'vs/editor/contrib/documentSymbols/outlineModel';
+import { HighlightingWorkbenchTree, IHighlightingTreeOptions } from 'vs/platform/list/browser/listService';
+import { IDisposable } from 'vs/base/common/lifecycle';
+import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
+import { InstantiationService } from 'vs/platform/instantiation/node/instantiationService';
 
 
 export class DefinitionActionConfig {
@@ -205,12 +212,43 @@ export class GoToDefinitionAction extends DefinitionAction {
 	}
 }
 
-export class GoToFunctionTopAction extends DefinitionAction {
+export class FunctionTopAction extends EditorAction {
+	protected readonly _tree: HighlightingWorkbenchTree;
+	protected readonly _treeContainer: HTMLDivElement;
+	protected readonly _disposables = new Array<IDisposable>();
+
+	constructor (
+		opts: IActionOptions
+	) {
+		super(opts);
+		const treeConifg = undefined;
+		this._tree = this._instantiationService.createInstance(
+			HighlightingWorkbenchTree,
+			this._treeContainer,
+			treeConifg,
+			<IHighlightingTreeOptions>{ useShadows: false, filterOnType: undefined, showTwistie: false, twistiePixels: 12 },
+			{ placeholder: nls.localize('placeholder', "Find") }
+		);
+	}
+
+	public run(accessor: ServicesAccessor, editor: ICodeEditor): TPromise<void> {
+		const model = editor.getModel();
+		const pos = editor.getPosition();
+		this._getCurrentFunctionAtPosition(model, pos, CancellationToken.None, this._tree, undefined);
+		return new Promise(undefined);
+	}
+
+	protected _getCurrentFunctionAtPosition(model: ITextModel, position: corePosition.Position, token: CancellationToken, tree: ITree, input: OutlineElement): Thenable<DefinitionLink[]> {
+		return getCurrentFunctionAtPosition(model, position, token, tree, input);
+	}
+}
+
+export class GoToFunctionTopAction extends FunctionTopAction {
 
 	public static readonly ID = 'editor.action.goToFunctionTop';
 
 	constructor() {
-		super(new DefinitionActionConfig(), {
+		super(new InstantiationService(undefined, true), {
 			id: GoToFunctionTopAction.ID,
 			label: nls.localize('actions.goToFuncTop.label', "Go to Top of Function"),
 			alias: 'Go to Top of Function',
