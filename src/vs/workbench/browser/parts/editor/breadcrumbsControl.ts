@@ -483,6 +483,34 @@ function focusAndSelectHandler(accessor: ServicesAccessor, select: boolean): voi
 		}
 	}
 }
+
+// focus/focus-and-select
+function focusAndSelectHandler2(accessor: ServicesAccessor, select: boolean): void {
+	// find widget and focus/select
+	const groups = accessor.get(IEditorGroupsService);
+	const breadcrumbs = accessor.get(IBreadcrumbsService);
+	const widget = breadcrumbs.getWidget(groups.activeGroup.id);
+	if (widget) {
+		const item = tail(widget.getItems());
+		widget.setFocused(item);
+		if (select) {
+			widget.setSelection(item, BreadcrumbsControl.Payload_Pick);
+			let selectedItem = widget.getSelection();
+			console.log(selectedItem);
+			console.log(typeof (selectedItem));
+			// if('element' in selectedItem) {
+			// 	let selectedElement = selectedItem.element
+			// }
+			// if (isOutlineElement(selectedItem)) {
+			// 	console.log((<OutlineElement>selectedItem).symbol);
+			// }
+		}
+	}
+}
+
+// function isOutlineElement(element: FileElement | OutlineElement | OutlineModel | OutlineGroup): element is OutlineElement {
+//     return (<OutlineElement>element).symbol !== undefined;
+// }
 MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
 	command: {
 		id: 'breadcrumbs.focusAndSelect',
@@ -522,6 +550,33 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			await timeout(50); // hacky - the widget might not be ready yet...
 		}
 		return instant.invokeFunction(focusAndSelectHandler, true);
+	}
+});
+
+KeybindingsRegistry.registerCommandAndKeybindingRule({
+	id: 'breadcrumbs.focusAndSelect2',
+	weight: KeybindingWeight.WorkbenchContrib,
+	primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.US_COMMA,
+	when: BreadcrumbsControl.CK_BreadcrumbsPossible,
+	handler: accessor => focusAndSelectHandler2(accessor, true)
+});
+// this commands is only enabled when breadcrumbs are
+// disabled which it then enables and focuses
+KeybindingsRegistry.registerCommandAndKeybindingRule({
+	id: 'breadcrumbs.toggleToOn2',
+	weight: KeybindingWeight.WorkbenchContrib,
+	primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.US_COMMA,
+	when: ContextKeyExpr.not('config.breadcrumbs.enabled'),
+	handler: async accessor => {
+		const instant = accessor.get(IInstantiationService);
+		const config = accessor.get(IConfigurationService);
+		// check if enabled and iff not enable
+		const isEnabled = BreadcrumbsConfig.IsEnabled.bindTo(config);
+		if (!isEnabled.getValue()) {
+			await isEnabled.updateValue(true);
+			await timeout(50); // hacky - the widget might not be ready yet...
+		}
+		return instant.invokeFunction(focusAndSelectHandler2, true);
 	}
 });
 
