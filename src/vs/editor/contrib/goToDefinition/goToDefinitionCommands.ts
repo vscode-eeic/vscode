@@ -27,8 +27,12 @@ import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 import { IProgressService } from 'vs/platform/progress/common/progress';
-import { getDefinitionsAtPosition, getImplementationsAtPosition, getTypeDefinitionsAtPosition } from './goToDefinition';
-
+import { getDefinitionsAtPosition, getImplementationsAtPosition, getTypeDefinitionsAtPosition, getCurrentFunctionAtPosition } from './goToDefinition';
+import { HighlightingWorkbenchTree, IHighlightingTreeOptions, IHighlightingTreeConfiguration } from 'vs/platform/list/browser/listService';
+import { IDisposable } from 'vs/base/common/lifecycle';
+import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
+import { ITree } from 'vs/base/parts/tree/browser/tree';
+import { OutlineElement } from 'vs/editor/contrib/documentSymbols/outlineModel';
 
 export class DefinitionActionConfig {
 
@@ -205,7 +209,42 @@ export class GoToDefinitionAction extends DefinitionAction {
 	}
 }
 
-export class GoToFunctionTopAction extends DefinitionAction {
+export class FunctionTopAction extends EditorAction {
+
+	protected _tree: HighlightingWorkbenchTree;
+	protected _instantiationService: IInstantiationService;
+	protected readonly _treeContainer: HTMLDivElement;
+	protected readonly _disposables = new Array<IDisposable>();
+
+	constructor(configuration: DefinitionActionConfig, opts: IActionOptions) {
+		super(opts);
+	}
+
+	public run(accessor: ServicesAccessor, editor: ICodeEditor): TPromise<void> {
+		const instantiationService = accessor.get(IInstantiationService);
+
+		const model = editor.getModel();
+		const pos = editor.getPosition();
+
+		this._tree = instantiationService.createInstance(
+			HighlightingWorkbenchTree,
+			this._treeContainer,
+			<IHighlightingTreeConfiguration>{},
+			<IHighlightingTreeOptions>{ useShadows: false, filterOnType: undefined, showTwistie: false, twistiePixels: 12 },
+			{ placeholder: nls.localize('placeholder', "Find") }
+		);
+
+		const functionTopPromise = this._getCurrentFunctionAtPosition(model, pos, CancellationToken.None, this._tree, undefined).then(() => {});
+
+		return TPromise.wrap(functionTopPromise);
+	}
+
+	protected _getCurrentFunctionAtPosition(model: ITextModel, position: corePosition.Position, token: CancellationToken, tree: ITree, input: OutlineElement): Thenable<DefinitionLink[]> {
+		return getCurrentFunctionAtPosition(model, position, token, tree, input);
+	}
+}
+
+export class GoToFunctionTopAction extends FunctionTopAction {
 
 	public static readonly ID = 'editor.action.goToFunctionTop';
 

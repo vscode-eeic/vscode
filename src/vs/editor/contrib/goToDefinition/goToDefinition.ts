@@ -11,6 +11,12 @@ import { Position } from 'vs/editor/common/core/position';
 import { ITextModel } from 'vs/editor/common/model';
 import { DefinitionLink, DefinitionProviderRegistry, ImplementationProviderRegistry, TypeDefinitionProviderRegistry } from 'vs/editor/common/modes';
 import LanguageFeatureRegistry from 'vs/editor/common/modes/languageFeatureRegistry';
+import { ITree } from 'vs/base/parts/tree/browser/tree';
+import { IWorkspaceFolder } from 'vs/platform/workspace/common/workspace';
+import { IFileStat, FileKind } from 'vs/platform/files/common/files';
+import { isEqual } from 'vs/base/common/resources';
+import { URI } from 'vs/base/common/uri';
+import { OutlineElement } from 'vs/editor/contrib/documentSymbols/outlineModel';
 
 
 function getDefinitions<T>(
@@ -50,6 +56,34 @@ export function getTypeDefinitionsAtPosition(model: ITextModel, position: Positi
 	return getDefinitions(model, position, TypeDefinitionProviderRegistry, (provider, model, position) => {
 		return provider.provideTypeDefinition(model, position, token);
 	});
+}
+
+export class FileElement {
+	constructor(
+		readonly uri: URI,
+		readonly kind: FileKind
+	) { }
+}
+export function getCurrentFunctionAtPosition(model: ITextModel, position: Position, token: CancellationToken, tree: ITree, input: OutlineElement): Thenable<DefinitionLink[]> {
+	let selection = (tree, input) => {
+		let { uri } = (input as FileElement);
+		let nav = tree.getNavigator();
+		while (nav.next()) {
+			let cur = nav.current();
+			let candidate = IWorkspaceFolder.isIWorkspaceFolder(cur) ? cur.uri : (cur as IFileStat).resource;
+			if (isEqual(uri, candidate)) {
+				return cur;
+			}
+		}
+		return undefined;
+	};
+	if (selection) {
+		tree.reveal(selection, .5).then(() => {
+			tree.setFocus(selection);
+			tree.domFocus();
+		});
+	}
+	return new Promise(null);
 }
 
 registerDefaultLanguageCommand('_executeDefinitionProvider', (model, position) => getDefinitionsAtPosition(model, position, CancellationToken.None));
