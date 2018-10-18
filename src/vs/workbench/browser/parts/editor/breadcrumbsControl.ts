@@ -483,6 +483,64 @@ function focusAndSelectHandler(accessor: ServicesAccessor, select: boolean): voi
 		}
 	}
 }
+
+// focus/focus-and-select
+function focusAndSelectHandler2(accessor: ServicesAccessor, select: boolean): void {
+	// find widget and focus/select
+	const groups = accessor.get(IEditorGroupsService);
+	const breadcrumbs = accessor.get(IBreadcrumbsService);
+	const widget = breadcrumbs.getWidget(groups.activeGroup.id);
+	if (widget) {
+		const item = tail(widget.getItems());
+		widget.setFocused(item);
+		if (select) {
+			widget.setSelection(item, BreadcrumbsControl.Payload_Pick);
+			let selectedItem = (widget.getSelection() as Item);
+			console.log(selectedItem.element);
+			let selectedFunction = findFunction(selectedItem.element) as OutlineElement;
+			console.log(selectedFunction);
+			console.log(selectedFunction.symbol.range);
+			// if('element' in selectedItem) {
+			// 	let selectedElement = selectedItem.element
+			// }
+			// if (isOutlineElement(selectedItem)) {
+			// 	console.log((<OutlineElement>selectedItem).symbol);
+			// }
+		}
+	}
+}
+
+function findFunction(element: BreadcrumbElement): BreadcrumbElement | null {
+	let _functionElement: BreadcrumbElement | null;
+	let _element: BreadcrumbElement | undefined = element;
+	if (element instanceof FileElement) {
+		_functionElement = null;
+	} else {
+		while (!isFunction(_element)) {
+			_element = (_element as OutlineElement).parent;
+		}
+		_functionElement = _element;
+	}
+	return _functionElement;
+}
+function isFunction(element: BreadcrumbElement | undefined): boolean {
+	if (element === undefined) {
+		return true;
+	}
+	let _symbol = (<OutlineElement>element).symbol;
+	if (_symbol.kind === 5 || _symbol.kind === 11) {
+		if (_symbol.name === '<function>') {
+			return false;
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+// function isOutlineElement(element: FileElement | OutlineElement | OutlineModel | OutlineGroup): element is OutlineElement {
+//     return (<OutlineElement>element).symbol !== undefined;
+// }
 MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
 	command: {
 		id: 'breadcrumbs.focusAndSelect',
@@ -522,6 +580,33 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			await timeout(50); // hacky - the widget might not be ready yet...
 		}
 		return instant.invokeFunction(focusAndSelectHandler, true);
+	}
+});
+
+KeybindingsRegistry.registerCommandAndKeybindingRule({
+	id: 'breadcrumbs.focusAndSelect2',
+	weight: KeybindingWeight.WorkbenchContrib,
+	primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.US_COMMA,
+	when: BreadcrumbsControl.CK_BreadcrumbsPossible,
+	handler: accessor => focusAndSelectHandler2(accessor, true)
+});
+// this commands is only enabled when breadcrumbs are
+// disabled which it then enables and focuses
+KeybindingsRegistry.registerCommandAndKeybindingRule({
+	id: 'breadcrumbs.toggleToOn2',
+	weight: KeybindingWeight.WorkbenchContrib,
+	primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.US_COMMA,
+	when: ContextKeyExpr.not('config.breadcrumbs.enabled'),
+	handler: async accessor => {
+		const instant = accessor.get(IInstantiationService);
+		const config = accessor.get(IConfigurationService);
+		// check if enabled and iff not enable
+		const isEnabled = BreadcrumbsConfig.IsEnabled.bindTo(config);
+		if (!isEnabled.getValue()) {
+			await isEnabled.updateValue(true);
+			await timeout(50); // hacky - the widget might not be ready yet...
+		}
+		return instant.invokeFunction(focusAndSelectHandler2, true);
 	}
 });
 
