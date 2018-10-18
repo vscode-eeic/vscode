@@ -495,9 +495,11 @@ function focusAndSelectHandler2(accessor: ServicesAccessor, select: boolean): vo
 		widget.setFocused(item);
 		if (select) {
 			widget.setSelection(item, BreadcrumbsControl.Payload_Pick);
-			let selectedItem = widget.getSelection();
-			console.log(selectedItem);
-			console.log(typeof (selectedItem));
+			let selectedItem = (widget.getSelection() as Item);
+			console.log(selectedItem.element);
+			let selectedFunction = findFunction(selectedItem.element) as OutlineElement;
+			console.log(selectedFunction);
+			console.log(selectedFunction.symbol.range);
 			// if('element' in selectedItem) {
 			// 	let selectedElement = selectedItem.element
 			// }
@@ -505,6 +507,34 @@ function focusAndSelectHandler2(accessor: ServicesAccessor, select: boolean): vo
 			// 	console.log((<OutlineElement>selectedItem).symbol);
 			// }
 		}
+	}
+}
+
+function findFunction(element: BreadcrumbElement): BreadcrumbElement | null {
+	let _functionElement: BreadcrumbElement | null;
+	let _element: BreadcrumbElement | undefined = element;
+	if (element instanceof FileElement) {
+		_functionElement = null;
+	} else {
+		while (!isFunction(_element)) {
+			_element = (_element as OutlineElement).parent;
+		}
+		_functionElement = _element;
+	}
+	return _functionElement;
+}
+function isFunction(element: BreadcrumbElement | undefined): boolean {
+	if (element === undefined) {
+		return true;
+	}
+	let _symbol = (<OutlineElement>element).symbol;
+	if (_symbol.kind === 5 || _symbol.kind === 11) {
+		if (_symbol.name === '<function>') {
+			return false;
+		}
+		return true;
+	} else {
+		return false;
 	}
 }
 
