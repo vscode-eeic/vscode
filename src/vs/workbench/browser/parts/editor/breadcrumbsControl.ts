@@ -485,44 +485,50 @@ function focusAndSelectHandler(accessor: ServicesAccessor, select: boolean): voi
 }
 
 // focus/focus-and-select
-function focusAndSelectHandler2(accessor: ServicesAccessor, select: boolean): void {
+function focusAndSelectHandler2(accessor: ServicesAccessor, select: boolean): OutlineElement {
 	// find widget and focus/select
 	const groups = accessor.get(IEditorGroupsService);
 	const breadcrumbs = accessor.get(IBreadcrumbsService);
 	const widget = breadcrumbs.getWidget(groups.activeGroup.id);
 	if (widget) {
-		const item = tail(widget.getItems());
-		widget.setFocused(item);
-		if (select) {
-			widget.setSelection(item, BreadcrumbsControl.Payload_Pick);
-			let selectedItem = (widget.getSelection() as Item);
-			console.log(selectedItem.element);
-			let selectedFunction = findFunction(selectedItem.element) as OutlineElement;
-			console.log(selectedFunction);
-			console.log(selectedFunction.symbol.range);
+		const items = widget.getItems();
+		let item = items[items.length - 1] as Item;
+		if (item.element instanceof FileElement) {
+			return null;
+		} else {
+			let i = items.length - 1;
+			while (!isFunction(item.element) && i > 0) {
+				i--;
+				item = items[i] as Item;
+			}
+			return item.element as OutlineElement;
+		}
+
+
+
+		// // const item = tail(widget.getItems());
+		// widget.setFocused(item);
+		// if (select) {
+		// 	widget.setSelection(item, BreadcrumbsControl.Payload_Pick);
+		// 	let selectedItem = (widget.getSelection() as Item);
+		// 	let selectedFunction = findFunction(selectedItem.element) as OutlineElement;
+			// console.log(selectedFunction);
+			// console.log(selectedFunction.symbol.range);
+			// let model = OutlineModel.get(selectedFunction);
+			// // let codeEditorService = accessor.get(ICodeEditorService);
+			// widget.setSelection(selectedItem, BreadcrumbsControl.Payload_Pick);
 			// if('element' in selectedItem) {
 			// 	let selectedElement = selectedItem.element
 			// }
 			// if (isOutlineElement(selectedItem)) {
 			// 	console.log((<OutlineElement>selectedItem).symbol);
-			// }
-		}
+		// 	// }
+		// }
+	} else {
+		return null;
 	}
 }
 
-function findFunction(element: BreadcrumbElement): BreadcrumbElement | null {
-	let _functionElement: BreadcrumbElement | null;
-	let _element: BreadcrumbElement | undefined = element;
-	if (element instanceof FileElement) {
-		_functionElement = null;
-	} else {
-		while (!isFunction(_element)) {
-			_element = (_element as OutlineElement).parent;
-		}
-		_functionElement = _element;
-	}
-	return _functionElement;
-}
 function isFunction(element: BreadcrumbElement | undefined): boolean {
 	if (element === undefined) {
 		return true;
@@ -588,7 +594,14 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	weight: KeybindingWeight.WorkbenchContrib,
 	primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.US_COMMA,
 	when: BreadcrumbsControl.CK_BreadcrumbsPossible,
-	handler: accessor => focusAndSelectHandler2(accessor, true)
+	handler: accessor => {
+		const element = focusAndSelectHandler2(accessor, true);
+		const editors = accessor.get(IEditorService);
+		return editors.openEditor({
+			resource: OutlineModel.get(element).textModel.uri,
+			options: { selection: Range.collapseToStart(element.symbol.selectionRange) }
+		}, SIDE_GROUP);
+	}
 });
 // this commands is only enabled when breadcrumbs are
 // disabled which it then enables and focuses
