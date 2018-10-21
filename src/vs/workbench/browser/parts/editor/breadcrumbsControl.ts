@@ -600,7 +600,7 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 		return editors.openEditor({
 			resource: OutlineModel.get(element).textModel.uri,
 			options: { selection: Range.collapseToStart(element.symbol.selectionRange) }
-		}, SIDE_GROUP);
+		}, ACTIVE_GROUP);
 	}
 });
 // this commands is only enabled when breadcrumbs are
